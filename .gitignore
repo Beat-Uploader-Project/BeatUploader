@@ -1,0 +1,9 @@
+# JUCE auto generated
+*.jucer
+*.filtergraph
+BeatUploader/Builds/
+BeatUploader/JuceLibraryCode/
+PluginProcessor.*
+
+# vs
+.vs/
