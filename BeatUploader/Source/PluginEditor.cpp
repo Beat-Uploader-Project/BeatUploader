@@ -65,27 +65,57 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
 
     // audio and image input
     addAndMakeVisible(audioSelect);
-    audioSelect.onClick = [this]() {
-        /*juce::FileChooser chooser("Select an audio file", {}, "*.mp3;*.wav;*.flac;*.ogg");
-        audio = chooser.getResult();
+    audioSelect.onClick = [this]()
+    {
+        output.setText("", juce::dontSendNotification);
 
-        if (!audio.existsAsFile()) {
-            output.setColour(juce::Label::textColourId, colours["error"]);
-            output.setText("Audio was not chosen", juce::dontSendNotification);
-        }
-        else audioChosen = true;*/
+        auto chooser = std::make_shared<juce::FileChooser>(
+            "Select an audio file",
+            juce::File{},
+            "*.mp3;*.wav;*.flac;*.ogg"
+        );
+
+        chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+            [this, chooser](const juce::FileChooser& fc)
+            {
+                auto result = fc.getResult();
+
+                if (!result.existsAsFile()) {
+                    output.setColour(juce::Label::textColourId, colours["error"]);
+                    output.setText("Audio was not chosen", juce::dontSendNotification);
+                }
+                else {
+                    audio = result;
+                    audioChosen = true;
+                }
+            });
     };
 
     addAndMakeVisible(imageSelect);
-    imageSelect.onClick = [this]() {
-        /*juce::FileChooser chooser("Select an image file", {}, "*.jpg;*.png;*.jpeg;*.gif");
-        image = chooser.getResult();
+    imageSelect.onClick = [this]()
+    {
+        output.setText("", juce::dontSendNotification);
 
-        if (!image.existsAsFile()) {
-            output.setColour(juce::Label::textColourId, colours["error"]);
-            output.setText("Image was not chosen", juce::dontSendNotification);
-        }
-        else imageChosen = true;*/
+        auto chooser = std::make_shared<juce::FileChooser>(
+            "Select image file",
+            juce::File{},
+            "*.jpg;*.png;*.gif"
+        );
+
+        chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+            [this, chooser](const juce::FileChooser& fc)
+            {
+                auto result = fc.getResult();
+
+                if (!result.existsAsFile()) {
+                    output.setColour(juce::Label::textColourId, colours["error"]);
+                    output.setText("Image was not chosen", juce::dontSendNotification);
+                }
+                else {
+                    image = result;
+                    imageChosen = true;
+                }
+            });
     };
 
     // upload button
