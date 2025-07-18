@@ -10,3 +10,6 @@ PluginProcessor.*
 
 # design
 design.png
+
+# enviroment variables for frontend
+BeatUploader/Source/env.*

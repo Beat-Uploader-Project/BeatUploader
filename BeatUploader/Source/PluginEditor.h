@@ -3,6 +3,8 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include <map>
+#include "env.h"
+#include "OAuthReceiver.h"
 
 // custom font for text buttons
 class customTextButtonFont : public juce::LookAndFeel_V4
@@ -33,6 +35,9 @@ private:
 
     void upload();
     void login();
+    void checkForRefreshToken();
+
+    std::unique_ptr<juce::FileLogger> logger; // debugger
 
     // colours map (declared in constructor)
     std::map<juce::String, juce::Colour> colours;
@@ -40,7 +45,6 @@ private:
     // constants
     int screenWidth = 400;
     int screenHeight = 650;
-    juce::String API_URL = "not avaliable yet";
 
     // control variables
     bool audioChosen = false;
@@ -74,6 +78,19 @@ private:
     juce::Typeface::Ptr titleTypeface, infoTypeface, boxTypeface, buttonTypeface;
 
     std::unique_ptr<customTextButtonFont> lookAndFeel;
+
+    // Google OAuth
+    juce::String loginURL =
+        "https://accounts.google.com/o/oauth2/v2/auth"
+        "?client_id=1021325830189-2hdeafptk3lvarkhc8h1qh90if499jvl.apps.googleusercontent.com"
+        "&redirect_uri=http://localhost:8080"
+        "&response_type=code"
+        "&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.upload%20openid%20email"
+        "&access_type=offline"
+        "&prompt=consent";
+
+    juce::String googleAuthCode;
+    std::unique_ptr<OAuthReceiver> oauthReceiver;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BeatUploaderAudioProcessorEditor)
 };

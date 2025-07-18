@@ -1,10 +1,22 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "OAuthReceiver.h"
 
 BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploaderAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
     setSize (screenWidth, screenHeight);
+
+    // debugger
+
+    //auto logFile = juce::File::getSpecialLocation(juce::File::userDesktopDirectory)
+    //    .getChildFile("beat-uploader-log.txt");
+
+    //logger = std::make_unique<juce::FileLogger>(logFile, "BeatUploader started");
+    //juce::Logger::setCurrentLogger(logger.get());
+
+    //juce::Logger::writeToLog("Logger initialized");
+
 
     // colours map that assigns RGB colour to descriptive name
     colours["bg"] = juce::Colour(15, 15, 15);
@@ -135,9 +147,39 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
 }
 BeatUploaderAudioProcessorEditor::~BeatUploaderAudioProcessorEditor(){}
 
-void BeatUploaderAudioProcessorEditor::login()
+void BeatUploaderAudioProcessorEditor::checkForRefreshToken()
 {
     
+}
+
+void BeatUploaderAudioProcessorEditor::login()
+{
+    checkForRefreshToken();
+
+    if (!loggedIn) {
+        oauthReceiver = std::make_unique<OAuthReceiver>(8080);
+
+        oauthReceiver->setCallback([this](const juce::String& code)
+        {
+            juce::MessageManager::callAsync([this, code]()
+            {
+                googleAuthCode = code; // assign code
+
+                // inform user
+                output.setColour(juce::Label::textColourId, colours["font"]);
+                output.setText("Successfully logged in", juce::dontSendNotification);
+                loggedIn = true;
+            });
+        });
+
+        oauthReceiver->startThread();
+
+        juce::URL(loginURL).launchInDefaultBrowser();
+    }
+    else { // if user is already logged in, inform them how to change the account they chose
+        output.setColour(juce::Label::textColourId, colours["font"]);
+        output.setText("If you want to change the account, reopen the plugin", juce::dontSendNotification);
+    }
 }
 
 void BeatUploaderAudioProcessorEditor::upload()
