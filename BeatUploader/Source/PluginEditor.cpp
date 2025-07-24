@@ -2,6 +2,10 @@
 #include "PluginEditor.h"
 #include "OAuthReceiver.h"
 
+#include <fstream>
+#include <cstdlib>
+#include <string>
+
 BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploaderAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
@@ -149,37 +153,98 @@ BeatUploaderAudioProcessorEditor::~BeatUploaderAudioProcessorEditor(){}
 
 void BeatUploaderAudioProcessorEditor::checkForRefreshToken()
 {
-    
+    char* appdata = std::getenv("APPDATA");
+    if (!appdata) {
+        output.setColour(juce::Label::textColourId, colours["font"]);
+        output.setText("Opening the browser...", juce::dontSendNotification);
+        return;
+    }
+
+    std::string filePath = std::string(appdata) + "\\BeatUploader\\refresh_token.txt";
+    std::ifstream file(filePath);
+
+    if (file) {
+        std::string code, email;
+        try {
+            std::getline(file, code);
+            std::getline(file, email);
+        }
+        catch (std::exception& e) { // if data of the files cannot be read
+            output.setColour(juce::Label::textColourId, colours["font"]);
+            output.setText("Opening the browser...", juce::dontSendNotification);
+            return;
+        }
+
+        if (code != "" && email != "") {
+            accessToken = code;
+            accessTokenObtained = loggedIn = true;
+
+            output.setColour(juce::Label::textColourId, colours["font"]);
+            output.setText("Successfully logged in as: " + email, juce::dontSendNotification);
+        }
+    }
+    if (!accessTokenObtained) {
+        output.setColour(juce::Label::textColourId, colours["font"]);
+        output.setText("Opening the browser...", juce::dontSendNotification);
+    }
+
+    file.close();
 }
 
 void BeatUploaderAudioProcessorEditor::login()
 {
-    checkForRefreshToken();
+    if (!loginStarted && !loggedIn) {
+        if (!accessTokenObtained) {
+            checkForRefreshToken();
+            if (accessTokenObtained) return;
+        }
 
-    if (!loggedIn) {
         oauthReceiver = std::make_unique<OAuthReceiver>(8080);
+        loginStarted = true;
 
         oauthReceiver->setCallback([this](const juce::String& code)
-        {
-            juce::MessageManager::callAsync([this, code]()
             {
-                googleAuthCode = code; // assign code
+                juce::MessageManager::callAsync([this, code]()
+                    {
+                        googleAuthCode = code; // assign code
 
-                // inform user
-                output.setColour(juce::Label::textColourId, colours["font"]);
-                output.setText("Successfully logged in", juce::dontSendNotification);
-                loggedIn = true;
+                        // inform user
+                        output.setColour(juce::Label::textColourId, colours["font"]);
+                        output.setText("Successfully logged in", juce::dontSendNotification);
+
+                        loggedIn = true;
+                    });
             });
-        });
 
         oauthReceiver->startThread();
 
         juce::URL(loginURL).launchInDefaultBrowser();
     }
-    else { // if user is already logged in, inform them how to change the account they chose
-        output.setColour(juce::Label::textColourId, colours["font"]);
-        output.setText("If you want to change the account, reopen the plugin", juce::dontSendNotification);
+    else if (loginStarted && !loggedIn) {
+        output.setColour(juce::Label::textColourId, colours["error"]);
+        output.setText("Login process failed, delete the plugin and open it again", juce::dontSendNotification);
     }
+    else {
+        output.setColour(juce::Label::textColourId, colours["font"]);
+        output.setText("To change account, delete the plugin and open it again", juce::dontSendNotification);
+    }
+}
+
+void BeatUploaderAudioProcessorEditor::createRefreshToken(std::string email, std::string code)
+{
+    const char* appdata = std::getenv("APPDATA");
+    if (!appdata) return;
+
+    std::string filePath = std::string(appdata) + "\\BeatUploader";
+    std::system(("mkdir \"" + filePath + "\" >nul 2>&1").c_str());
+
+    filePath += "\\refresh_token.txt";
+    std::ofstream file(filePath);
+
+    if (file) {
+        file << code << '\n' << email;
+    }
+    file.close();
 }
 
 void BeatUploaderAudioProcessorEditor::upload()

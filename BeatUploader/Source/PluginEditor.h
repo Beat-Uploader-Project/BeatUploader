@@ -36,6 +36,7 @@ private:
     void upload();
     void login();
     void checkForRefreshToken();
+    void createRefreshToken(std::string email, std::string code);
 
     std::unique_ptr<juce::FileLogger> logger; // debugger
 
@@ -51,6 +52,8 @@ private:
     bool imageChosen = false;
     bool uploadedSuccessfully = false; // control to not auto spam, user must shut down the plugin to upload another beat after submitting one successfully
     bool loggedIn = false;
+    bool accessTokenObtained = false;
+    bool loginStarted = false;
 
     // google oauth login
     juce::TextButton loginBtn;
@@ -90,6 +93,7 @@ private:
         "&prompt=consent";
 
     juce::String googleAuthCode;
+    juce::String accessToken;
     std::unique_ptr<OAuthReceiver> oauthReceiver;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BeatUploaderAudioProcessorEditor)
