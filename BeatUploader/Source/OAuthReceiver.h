@@ -9,10 +9,10 @@ using AuthCodeCallback = std::function<void(const juce::String& code)>; // type 
 class OAuthReceiver : public juce::Thread
 {
 public:
-    OAuthReceiver(int portToUse = 8080)
+    OAuthReceiver(int portToUse = 8080) // running listening server on port 8080 on another thread
         : juce::Thread("OAuthReceiverThread"), port(portToUse), shouldStop(false) {}
 
-    void setCallback(AuthCodeCallback func) // sets function to run when code is parsed
+    void setCallback(AuthCodeCallback func) // sets function (callback) to run when authentication code is parsed
     {
         callback = std::move(func);
     }
@@ -28,21 +28,21 @@ public:
         while (!threadShouldExit() && !shouldStop) { // wait for code to arrive while user is logging
             std::unique_ptr<juce::StreamingSocket> client(serverSocket.waitForNextConnection());
 
-            if (client != nullptr) {
-                char buffer[4096] = { 0 };
+            if (client != nullptr) { // if user logged in and login page finally redirected to one that has authentication code
+                char buffer[4096] = { 0 }; // creates buffer
                 int bytesRead = client->read(buffer, sizeof(buffer), false); // read response
 
                 if (bytesRead > 0) {
-                    juce::String response(buffer, bytesRead);
+                    juce::String response(buffer, bytesRead); // get response
 
                     if (response.startsWith("GET ")) {
-                        auto firstLine = response.upToFirstOccurrenceOf("\r\n", false, false);
-                        auto queryStart = firstLine.indexOf("?code=");
+                        auto firstLine = response.upToFirstOccurrenceOf("\r\n", false, false); // authentication code is within the firstline of response
+                        auto queryStart = firstLine.indexOf("?code="); // starting index of query parameters
 
                         if (queryStart != -1) {
-                            auto codeStart = queryStart + 6; // parse authentication code
+                            auto codeStart = queryStart + 6;
                             auto codeEnd = firstLine.indexOfChar(codeStart, ' ');
-                            juce::String code = firstLine.substring(codeStart, codeEnd).unquoted();
+                            juce::String code = firstLine.substring(codeStart, codeEnd).unquoted(); // parse code from query parameter
 
                             authCode = code;
                             shouldStop = true;
@@ -52,28 +52,31 @@ public:
                                     cb(code);
                                 });
                             }
+                            else {
+                                juce::URL(API_URL + "?status=error&reason=cb").launchInDefaultBrowser();
+                            }
 
                             juce::URL(API_URL + "?status=ok").launchInDefaultBrowser(); // redirect to success page
                         }
                         else {
-                            juce::URL(API_URL + "?status=error").launchInDefaultBrowser(); // redirect to error page
+                            juce::URL(API_URL + "?status=error&reason=parameters").launchInDefaultBrowser(); // redirect to error page
                             shouldStop = true;
                         }
                     }
                     else {
-                        juce::URL(API_URL + "?status=error").launchInDefaultBrowser();
+                        juce::URL(API_URL + "?status=error&reason=type").launchInDefaultBrowser();
                         shouldStop = true;
                     }
                 }
                 else {
-                    juce::URL(API_URL + "?status=error").launchInDefaultBrowser();
+                    juce::URL(API_URL + "?status=error&reason=empty").launchInDefaultBrowser();
                     shouldStop = true;
                 }
 
                 client->close();
             }
 
-            juce::Thread::sleep(50);
+            juce::Thread::sleep(50); // sleep after every attempt, to not burn CPU
         }
 
         serverSocket.close();

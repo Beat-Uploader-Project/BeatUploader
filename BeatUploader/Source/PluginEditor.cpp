@@ -11,7 +11,7 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
 {
     setSize (screenWidth, screenHeight);
 
-    // debugger
+    // debugger (use it locally, but comment it out when you submit to remote)
 
     //auto logFile = juce::File::getSpecialLocation(juce::File::userDesktopDirectory)
     //    .getChildFile("beat-uploader-log.txt");
@@ -151,28 +151,28 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
 }
 BeatUploaderAudioProcessorEditor::~BeatUploaderAudioProcessorEditor(){}
 
+// checks for text file on user's PC
 void BeatUploaderAudioProcessorEditor::checkForRefreshToken()
 {
-    char* appdata = std::getenv("APPDATA");
-    if (!appdata) {
+    char* appdata = std::getenv("APPDATA"); // get appdata folder
+    if (!appdata) { // if wasn't found, continue with login function
         output.setColour(juce::Label::textColourId, colours["font"]);
         output.setText("Opening the browser...", juce::dontSendNotification);
         return;
     }
 
     std::string filePath = std::string(appdata) + "\\BeatUploader\\refresh_token.txt";
-    std::ifstream file(filePath);
+    std::ifstream file(filePath); // open storage file, created earlier (and if not, then contibue with login function)
 
     if (file) {
         std::string code, email;
-        try {
+        try { // get access token and email stored in the file
             std::getline(file, code);
             std::getline(file, email);
         }
-        catch (std::exception& e) { // if data of the files cannot be read
-            output.setColour(juce::Label::textColourId, colours["font"]);
-            output.setText("Opening the browser...", juce::dontSendNotification);
-            return;
+        catch (std::exception& e) { // if data cannot be read
+            code = "";
+            email = "";
         }
 
         if (code != "" && email != "") {
@@ -191,18 +191,19 @@ void BeatUploaderAudioProcessorEditor::checkForRefreshToken()
     file.close();
 }
 
+// Google OAuth login process
 void BeatUploaderAudioProcessorEditor::login()
 {
-    if (!loginStarted && !loggedIn) {
-        if (!accessTokenObtained) {
+    if (!loginStarted && !loggedIn) { // base case, when user just opened the plugin
+        if (!accessTokenObtained) { // check if refresh token is stored on user's PC
             checkForRefreshToken();
-            if (accessTokenObtained) return;
+            if (accessTokenObtained) return; // if yes, there's no need to send oauth request
         }
 
-        oauthReceiver = std::make_unique<OAuthReceiver>(8080);
-        loginStarted = true;
+        oauthReceiver = std::make_unique<OAuthReceiver>(8080); // initialize listener on localhost::8080
+        loginStarted = true; // flag variable, if listening socket was once set up, it cannot be set up again, user must delete the plugin and open it again to login again
 
-        oauthReceiver->setCallback([this](const juce::String& code)
+        oauthReceiver->setCallback([this](const juce::String& code) // assign callback, whan will happen when google authentication code is reveived
             {
                 juce::MessageManager::callAsync([this, code]()
                     {
@@ -216,40 +217,140 @@ void BeatUploaderAudioProcessorEditor::login()
                     });
             });
 
-        oauthReceiver->startThread();
+        oauthReceiver->startThread(); // start socket
 
-        juce::URL(loginURL).launchInDefaultBrowser();
+        juce::URL(loginURL).launchInDefaultBrowser(); // open google oauth page
     }
-    else if (loginStarted && !loggedIn) {
+    else if (loginStarted && !loggedIn) { // when login proces was exited (this logic is a subject of change in the future)
         output.setColour(juce::Label::textColourId, colours["error"]);
         output.setText("Login process failed, delete the plugin and open it again", juce::dontSendNotification);
     }
-    else {
+    else { // if user is already logged in
         output.setColour(juce::Label::textColourId, colours["font"]);
         output.setText("To change account, delete the plugin and open it again", juce::dontSendNotification);
     }
 }
 
+// creates text file on user's PC
 void BeatUploaderAudioProcessorEditor::createRefreshToken(std::string email, std::string code)
 {
-    const char* appdata = std::getenv("APPDATA");
+    const char* appdata = std::getenv("APPDATA"); // find APPDATA folder
     if (!appdata) return;
 
     std::string filePath = std::string(appdata) + "\\BeatUploader";
-    std::system(("mkdir \"" + filePath + "\" >nul 2>&1").c_str());
+    std::system(("mkdir \"" + filePath + "\" >nul 2>&1").c_str()); // create project folder in appdata
 
-    filePath += "\\refresh_token.txt";
+    filePath += "\\refresh_token.txt"; // create file
     std::ofstream file(filePath);
 
     if (file) {
-        file << code << '\n' << email;
+        file << code << '\n' << email; // add data to file
     }
     file.close();
 }
 
+// check user input and evoke function to send data to API
 void BeatUploaderAudioProcessorEditor::upload()
 {
+    // check user input
+    if (!loggedIn) {
+        output.setColour(juce::Label::textColourId, colours["error"]);
+        output.setText("You must be logged in to continue", juce::dontSendNotification);
+        return;
+    }
 
+    if (titleBox.getText() == "") {
+        output.setColour(juce::Label::textColourId, colours["error"]);
+        output.setText("Title was not provided", juce::dontSendNotification);
+        return;
+    }
+
+    if (!audioChosen || !imageChosen) {
+        output.setColour(juce::Label::textColourId, colours["error"]);
+        output.setText("Audio or image was not provided", juce::dontSendNotification);
+        return;
+    }
+
+    if (dscBox.getText() == "") {
+        bool result = juce::AlertWindow::showOkCancelBox(
+            juce::AlertWindow::WarningIcon,
+            "Warning!",
+            "Description was not provided, do you wish to continue?",
+            "Yes",
+            "Cancel",
+            nullptr,
+            nullptr
+        );
+
+        if (!result) return;
+    }
+
+    // send HTTP requests with data and access tokens or auth codes
+    if (accessTokenObtained) { // accessToken variable contains a value
+        sendData();
+    }
+    else { // accessToken variable is empty
+        getAccessToken();
+        sendData();
+    }
+}
+
+// sends user input to /upload API endpoint
+void BeatUploaderAudioProcessorEditor::sendData()
+{
+
+}
+
+void BeatUploaderAudioProcessorEditor::getAccessToken()
+{
+    // create JSON request to obtain access token to youtube api
+    juce::DynamicObject* jsonObject = new juce::DynamicObject();
+    jsonObject->setProperty("code", googleAuthCode);
+    jsonObject->setProperty("q", API_KEY);
+
+    juce::var jsonVar(jsonObject);
+    juce::String jsonString = juce::JSON::toString(jsonVar);
+
+    juce::String headers = "Content-Type: application/json\r\n";
+
+    juce::URL url(API_URL + "/getAccessToken"); // internal api endpoint, 
+    url = url.withPOSTData(jsonString); // add json as request's body
+
+    std::unique_ptr<juce::InputStream> stream(url.createInputStream(
+        true,
+        nullptr,
+        nullptr,
+        headers,
+        10000,
+        nullptr,
+        nullptr,
+        5
+    )); // connect to internal api
+
+    if (stream != nullptr) {
+        juce::String response = stream->readEntireStreamAsString(); // receive response
+        
+        if (response.indexOf("HTTP/1.1 200 OK") != -1) {
+            juce::var parsed = juce::JSON::parse(response);
+
+            if (parsed.isObject()) {
+                juce::var code = parsed["code"];
+                accessToken = code.toString(); // assign access token
+            }
+            else {
+                output.setColour(juce::Label::textColourId, colours["error"]);
+                output.setText("Server error, please try again later", juce::dontSendNotification);
+            }
+        }
+        else {
+            output.setColour(juce::Label::textColourId, colours["error"]);
+            output.setText("Unable to connect to Google account", juce::dontSendNotification);
+        }
+    }
+    else {
+        output.setColour(juce::Label::textColourId, colours["error"]);
+        output.setText("Unable to connect to Google account", juce::dontSendNotification);
+    }
 }
 
 void BeatUploaderAudioProcessorEditor::paint (juce::Graphics& g)
@@ -321,6 +422,7 @@ void BeatUploaderAudioProcessorEditor::resized()
     int spacing = 18;
     int cursor = marginY; // points to current place on Y axis to place next label
 
+    // below, elements are placed from one being the highest to one being the lowest
     title.setBounds(marginX, cursor, screenWidth - (2 * marginX), 42);
     cursor += (42 + spacing);
 

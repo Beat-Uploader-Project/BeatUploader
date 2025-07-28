@@ -34,6 +34,8 @@ private:
     BeatUploaderAudioProcessor& audioProcessor;
 
     void upload();
+    void sendData();
+    void getAccessToken();
     void login();
     void checkForRefreshToken();
     void createRefreshToken(std::string email, std::string code);
@@ -66,6 +68,7 @@ private:
     juce::TextButton audioSelect;
     juce::TextButton imageSelect;
     juce::TextButton uploadBtn;
+    juce::TextButton test;
 
     // files
     juce::File audio;
