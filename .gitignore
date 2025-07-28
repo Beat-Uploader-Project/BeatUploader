@@ -13,3 +13,9 @@ design.png
 
 # enviroment variables for frontend
 BeatUploader/Source/env.*
+
+# API
+API/venv
+API/API/.env
+
+**/__pycache__/**

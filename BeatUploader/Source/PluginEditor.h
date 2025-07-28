@@ -40,7 +40,7 @@ private:
     void checkForRefreshToken();
     void createRefreshToken(std::string email, std::string code);
 
-    std::unique_ptr<juce::FileLogger> logger; // debugger
+    //std::unique_ptr<juce::FileLogger> logger; // debugger
 
     // colours map (declared in constructor)
     std::map<juce::String, juce::Colour> colours;
@@ -68,11 +68,12 @@ private:
     juce::TextButton audioSelect;
     juce::TextButton imageSelect;
     juce::TextButton uploadBtn;
-    juce::TextButton test;
 
     // files
     juce::File audio;
     juce::File image;
+    juce::MemoryBlock audioData; // base64 encoding, necessary to send binary data through json
+    juce::MemoryBlock imageData;
 
     // labels
     juce::Label title;

@@ -29,6 +29,7 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
     colours["font"] = juce::Colour(223, 223, 223);
     colours["info"] = juce::Colour(209, 209, 209);
     colours["idle"] = juce::Colour(201, 201, 201);
+    colours["success"] = juce::Colour(71, 242, 56);
 
     colours["btnOnTxt"] = juce::Colour(217, 217, 217);
     colours["btnOnBg"] = juce::Colour(26, 26, 26);
@@ -102,7 +103,16 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
                 }
                 else {
                     audio = result;
-                    audioChosen = true;
+
+                    if (!audio.loadFileAsData(audioData)) {
+                        output.setColour(juce::Label::textColourId, colours["error"]);
+                        output.setText("Couldn't load audio file properly", juce::dontSendNotification);
+                    }
+                    else {
+                        output.setColour(juce::Label::textColourId, colours["font"]);
+                        output.setText("Audio uploaded", juce::dontSendNotification);
+                        audioChosen = true;
+                    }
                 }
             });
     };
@@ -129,7 +139,16 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
                 }
                 else {
                     image = result;
-                    imageChosen = true;
+
+                    if (!image.loadFileAsData(imageData)) {
+                        output.setColour(juce::Label::textColourId, colours["error"]);
+                        output.setText("Couldn't load iamge file properly", juce::dontSendNotification);
+                    }
+                    else {
+                        output.setColour(juce::Label::textColourId, colours["font"]);
+                        output.setText("Image uploaded", juce::dontSendNotification);
+                        imageChosen = true;
+                    }
                 }
             });
     };
@@ -286,19 +305,59 @@ void BeatUploaderAudioProcessorEditor::upload()
     }
 
     // send HTTP requests with data and access tokens or auth codes
-    if (accessTokenObtained) { // accessToken variable contains a value
-        sendData();
-    }
+    if (accessTokenObtained) sendData(); // accessToken variable contains a value
     else { // accessToken variable is empty
         getAccessToken();
-        sendData();
+        if (accessTokenObtained) sendData();
     }
 }
 
 // sends user input to /upload API endpoint
 void BeatUploaderAudioProcessorEditor::sendData()
 {
+    juce::String base64EncodedAudio = audioData.toBase64Encoding(); // encode binary files to base64
+    juce::String base64EncodedImage = imageData.toBase64Encoding();
 
+    juce::DynamicObject* jsonObject = new juce::DynamicObject();
+    jsonObject->setProperty("title", titleBox.getText());
+    jsonObject->setProperty("dsc", dscBox.getText());
+    jsonObject->setProperty("audio", base64EncodedAudio);
+    jsonObject->setProperty("image", base64EncodedImage);
+
+    juce::var jsonVar(jsonObject);
+    juce::String jsonString = juce::JSON::toString(jsonVar); // create json
+
+    juce::String headers = "Content-Type: application/json\r\n";
+
+    juce::URL url(API_URL + "/upload"); // internal api endpoint for uploading data
+    url = url.withPOSTData(jsonString); // assign json body
+
+    std::unique_ptr<juce::InputStream> stream(url.createInputStream( // conntect to api
+        true,
+        nullptr,
+        nullptr,
+        headers,
+        10000,
+        nullptr,
+        nullptr,
+        5
+    ));
+
+    if (stream != nullptr) {
+        juce::String response = stream->readEntireStreamAsString(); // read response
+        if (response.indexOf(juce::String("HTTP/1.1 201 Created\r\n")) != -1) { // if api's response says that beat was uploaded to youtube
+            output.setColour(juce::Label::textColourId, colours["success"]);
+            output.setText("Beat uploaded", juce::dontSendNotification);
+        }
+        else {
+            output.setColour(juce::Label::textColourId, colours["error"]);
+            output.setText("Server returned an error", juce::dontSendNotification);
+        }
+    }
+    else {
+        output.setColour(juce::Label::textColourId, colours["error"]);
+        output.setText("Unable to connect to Google account", juce::dontSendNotification);
+    }
 }
 
 void BeatUploaderAudioProcessorEditor::getAccessToken()
@@ -316,7 +375,7 @@ void BeatUploaderAudioProcessorEditor::getAccessToken()
     juce::URL url(API_URL + "/getAccessToken"); // internal api endpoint, 
     url = url.withPOSTData(jsonString); // add json as request's body
 
-    std::unique_ptr<juce::InputStream> stream(url.createInputStream(
+    std::unique_ptr<juce::InputStream> stream(url.createInputStream( // connect to internal api
         true,
         nullptr,
         nullptr,
@@ -325,12 +384,12 @@ void BeatUploaderAudioProcessorEditor::getAccessToken()
         nullptr,
         nullptr,
         5
-    )); // connect to internal api
+    ));
 
     if (stream != nullptr) {
         juce::String response = stream->readEntireStreamAsString(); // receive response
         
-        if (response.indexOf("HTTP/1.1 200 OK") != -1) {
+        if (response.indexOf(juce::String("HTTP/1.1 200 OK")) != -1) {
             juce::var parsed = juce::JSON::parse(response);
 
             if (parsed.isObject()) {
@@ -344,7 +403,7 @@ void BeatUploaderAudioProcessorEditor::getAccessToken()
         }
         else {
             output.setColour(juce::Label::textColourId, colours["error"]);
-            output.setText("Unable to connect to Google account", juce::dontSendNotification);
+            output.setText("Unable to connect to server", juce::dontSendNotification);
         }
     }
     else {

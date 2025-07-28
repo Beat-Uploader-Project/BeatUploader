@@ -53,23 +53,23 @@ public:
                                 });
                             }
                             else {
-                                juce::URL(API_URL + "?status=error&reason=cb").launchInDefaultBrowser();
+                                juce::URL(API_URL + "/static?status=error&reason=cb").launchInDefaultBrowser();
                             }
 
-                            juce::URL(API_URL + "?status=ok").launchInDefaultBrowser(); // redirect to success page
+                            juce::URL(API_URL + "/static?status=ok").launchInDefaultBrowser(); // redirect to success page
                         }
                         else {
-                            juce::URL(API_URL + "?status=error&reason=parameters").launchInDefaultBrowser(); // redirect to error page
+                            juce::URL(API_URL + "/static?status=error&reason=parameters").launchInDefaultBrowser(); // redirect to error page
                             shouldStop = true;
                         }
                     }
                     else {
-                        juce::URL(API_URL + "?status=error&reason=type").launchInDefaultBrowser();
+                        juce::URL(API_URL + "/static?status=error&reason=type").launchInDefaultBrowser();
                         shouldStop = true;
                     }
                 }
                 else {
-                    juce::URL(API_URL + "?status=error&reason=empty").launchInDefaultBrowser();
+                    juce::URL(API_URL + "/static?status=error&reason=empty").launchInDefaultBrowser();
                     shouldStop = true;
                 }
 
