@@ -49,7 +49,7 @@ private:
     int screenWidth = 400;
     int screenHeight = 650;
 
-    // control variables
+    // flags
     bool audioChosen = false;
     bool imageChosen = false;
     bool uploadedSuccessfully = false; // control to not auto spam, user must shut down the plugin to upload another beat after submitting one successfully

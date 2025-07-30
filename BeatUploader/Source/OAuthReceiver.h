@@ -21,7 +21,7 @@ public:
     {
         juce::StreamingSocket serverSocket; // set up listening socket
         if (!serverSocket.createListener(port)) { // if unable to create socket on this port (8080)
-            juce::URL(API_URL + "?status=port").launchInDefaultBrowser(); // redirect to informative page
+            juce::URL(API_URL + "/static?status=error&reason=port").launchInDefaultBrowser(); // redirect to informative page
             return;
         }
 
@@ -52,9 +52,6 @@ public:
                                     cb(code);
                                 });
                             }
-                            else {
-                                juce::URL(API_URL + "/static?status=error&reason=cb").launchInDefaultBrowser();
-                            }
 
                             juce::URL(API_URL + "/static?status=ok").launchInDefaultBrowser(); // redirect to success page
                         }
@@ -76,7 +73,7 @@ public:
                 client->close();
             }
 
-            juce::Thread::sleep(50); // sleep after every attempt, to not burn CPU
+            juce::Thread::sleep(50); // sleep after every attempt to not burn CPU
         }
 
         serverSocket.close();
