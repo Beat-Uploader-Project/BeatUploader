@@ -7,3 +7,15 @@ PluginProcessor.*
 
 # vs
 .vs/
+
+# design
+design.png
+
+# enviroment variables for juce
+BeatUploader/Source/env.*
+
+# API
+API/venv/
+API/API/.env
+
+**/__pycache__/**
