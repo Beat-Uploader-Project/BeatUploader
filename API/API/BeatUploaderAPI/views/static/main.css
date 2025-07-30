@@ -1,0 +1,28 @@
+body {
+    background-color: #0f0f0f;
+    color: #dfdfdf;
+
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+
+    font-family: "Montserrat", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+
+#logo {
+    width: 511px;
+    height: 105px;
+    margin-bottom: 35px;
+}
+
+.montserrat-message {
+    font-weight: 200;
+    font-size: 20px;
+}
+
+.montserrat-title {
+    font-weight: 500;
+    font-size: 44px;
+}

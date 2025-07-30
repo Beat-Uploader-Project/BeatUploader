@@ -17,5 +17,7 @@ BeatUploader/Source/env.*
 # API
 API/venv/
 API/API/.env
+API/API/staticroot/
 
+# common wild cards
 **/__pycache__/**
