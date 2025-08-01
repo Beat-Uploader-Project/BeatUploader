@@ -53,21 +53,21 @@ public:
                                 });
                             }
 
-                            juce::URL(API_URL + "/static?status=ok").launchInDefaultBrowser(); // redirect to success page
+                            client->write(successResponse.toRawUTF8(), successResponse.getNumBytesAsUTF8());
                         }
                         else {
-                            juce::URL(API_URL + "/static?status=error&reason=parameters").launchInDefaultBrowser(); // redirect to error page
                             shouldStop = true;
+                            client->write(errorResponse.toRawUTF8(), errorResponse.getNumBytesAsUTF8());
                         }
                     }
                     else {
-                        juce::URL(API_URL + "/static?status=error&reason=type").launchInDefaultBrowser();
                         shouldStop = true;
+                        client->write(errorResponse.toRawUTF8(), errorResponse.getNumBytesAsUTF8());
                     }
                 }
                 else {
-                    juce::URL(API_URL + "/static?status=error&reason=empty").launchInDefaultBrowser();
                     shouldStop = true;
+                    client->write(errorResponse.toRawUTF8(), errorResponse.getNumBytesAsUTF8());
                 }
 
                 client->close();
@@ -84,4 +84,16 @@ private:
     std::atomic<bool> shouldStop;
     juce::String authCode;
     AuthCodeCallback callback;
+
+    // change these with html files in the future
+    juce::String successResponse =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/html\r\n"
+        "Connection: close\r\n\r\n"
+        "<html><head><title>Success</title></head><body><h2>Success</h2><p>You can close this window</p></body></html>";
+    juce::String errorResponse =
+        "HTTP/1.1 400 Bad Request\r\n"
+        "Content-Type: text/html\r\n"
+        "Connection: close\r\n\r\n"
+        "<html><head><title>Error</title></head><body><h2>Error</h2><p>Login failed. Invalid parameters</p></body></html>";
 };
