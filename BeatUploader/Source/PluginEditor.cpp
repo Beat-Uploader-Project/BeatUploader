@@ -175,6 +175,7 @@ void BeatUploaderAudioProcessorEditor::checkForRefreshToken()
 {
     std::string appdata; // get appdata folder path
     const char* env = std::getenv("APPDATA");
+
     if (env)
         appdata = env;
     else
@@ -202,6 +203,7 @@ void BeatUploaderAudioProcessorEditor::checkForRefreshToken()
             output.setText("Successfully logged in as: " + email, juce::dontSendNotification);
         }
     }
+
     if (!accessTokenObtained) {
         output.setColour(juce::Label::textColourId, colours["font"]);
         output.setText("Opening the browser...", juce::dontSendNotification);
@@ -213,41 +215,41 @@ void BeatUploaderAudioProcessorEditor::checkForRefreshToken()
 // Google OAuth login process
 void BeatUploaderAudioProcessorEditor::login()
 {
-    if (!loginStarted && !loggedIn) { // base case, when user just opened the plugin
-        if (!accessTokenObtained) { // check if refresh token is stored on user's PC
-            checkForRefreshToken();
-            if (accessTokenObtained) return; // if yes, there's no need to send oauth request
-        }
-
-        oauthReceiver = std::make_unique<OAuthReceiver>(8080); // initialize listener on localhost::8080
-        loginStarted = true; // flag variable, if listening socket was once set up, it cannot be set up again, user must delete the plugin and open it again to login again
-
-        oauthReceiver->setCallback([this](const juce::String& code) // assign callback, whan will happen when google authentication code is reveived
-            {
-                juce::MessageManager::callAsync([this, code]()
-                    {
-                        googleAuthCode = code; // assign code
-
-                        // inform user
-                        output.setColour(juce::Label::textColourId, colours["font"]);
-                        output.setText("Successfully logged in", juce::dontSendNotification);
-
-                        loggedIn = true;
-                    });
-            });
-
-        oauthReceiver->startThread(); // start socket
-
-        juce::URL(loginURL).launchInDefaultBrowser(); // open google oauth page
-    }
-    else if (loginStarted && !loggedIn) { // when login proces was exited (this logic is a subject of change in the future)
-        output.setColour(juce::Label::textColourId, colours["error"]);
-        output.setText("Login process failed, delete the plugin and open it again", juce::dontSendNotification);
-    }
-    else { // if user is already logged in
+    if (loggedIn) { // check if user is already logged in
         output.setColour(juce::Label::textColourId, colours["font"]);
-        output.setText("To change account, delete the plugin and open it again", juce::dontSendNotification);
+        output.setText("Already logged in, click 'Change Account' button to change account", juce::dontSendNotification);
+        return;
     }
+
+    checkForRefreshToken(); // check for refresh_token.txt file in APPDATA to skip logging process
+    if (accessTokenObtained) return;
+
+    // below code creates listening socket and launches google oauth login page in the browser
+
+    if (inProcess) // this stops user from creating another listening socket when one is already listening
+        oauthReceiver->stopThread(1000); // stops currently running socket and reopnes it
+
+    oauthReceiver = std::make_unique<OAuthReceiver>(8080); // initialize listener on localhost::8080
+
+    oauthReceiver->setCallback([this](const juce::String& code) // assign callback, whan will happen when google authentication code is reveived
+        {
+            juce::MessageManager::callAsync([this, code]()
+                {
+                    googleAuthCode = code; // assign code
+
+                    // inform user
+                    output.setColour(juce::Label::textColourId, colours["font"]);
+                    output.setText("Successfully logged in", juce::dontSendNotification);
+
+                    loggedIn = true;
+                    inProcess = false;
+                });
+        });
+
+    oauthReceiver->startThread(); // start socket
+    inProcess = true;
+
+    juce::URL(loginURL).launchInDefaultBrowser(); // open google oauth login page
 }
 
 // creates text file on user's PC

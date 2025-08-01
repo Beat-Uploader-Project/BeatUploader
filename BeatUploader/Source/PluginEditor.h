@@ -52,10 +52,12 @@ private:
     // flags
     bool audioChosen = false;
     bool imageChosen = false;
+    
     bool uploadedSuccessfully = false; // control to not auto spam, user must shut down the plugin to upload another beat after submitting one successfully
     bool loggedIn = false;
     bool accessTokenObtained = false;
-    bool loginStarted = false;
+
+    bool inProcess = false; // if listening socket is running, this will be set to true
 
     // google oauth login
     juce::TextButton loginBtn;
