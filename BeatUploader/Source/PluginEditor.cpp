@@ -75,6 +75,9 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
     // textboxes and labels
     addAndMakeVisible(titleBox);
     addAndMakeVisible(dscBox);
+    dscBox.setMultiLine(true);
+    dscBox.setReturnKeyStartsNewLine(true);
+    dscBox.setScrollbarsShown(true);
 
     addAndMakeVisible(title);
     addAndMakeVisible(info);
