@@ -27,6 +27,12 @@ def check_API_key(view):
                     q = content.get('q')
                 except Exception:
                     pass
+            elif '_content' in request.data:
+                try:
+                    content = json.loads(request.data["_content"])
+                    q = content.get('q')
+                except Exception:
+                    pass
             
             if q != api_key:
                 return Response({'Error': 'API key is incorrect'}, status=status.HTTP_403_FORBIDDEN)
