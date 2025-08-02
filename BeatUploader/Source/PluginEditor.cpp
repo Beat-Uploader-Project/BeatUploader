@@ -13,13 +13,13 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
 
     // debugger (use it locally, but comment it out when you submit to remote)
 
-    //auto logFile = juce::File::getSpecialLocation(juce::File::userDesktopDirectory)
-    //    .getChildFile("beat-uploader-log.txt");
+    /*auto logFile = juce::File::getSpecialLocation(juce::File::userDesktopDirectory)
+        .getChildFile("beat-uploader-log.txt");
 
-    //logger = std::make_unique<juce::FileLogger>(logFile, "BeatUploader started");
-    //juce::Logger::setCurrentLogger(logger.get());
+    logger = std::make_unique<juce::FileLogger>(logFile, "BeatUploader started");
+    juce::Logger::setCurrentLogger(logger.get());
 
-    //juce::Logger::writeToLog("Logger initialized");
+    juce::Logger::writeToLog("Logger initialized");*/
 
 
     // colours map that assigns RGB colour to descriptive name
@@ -387,7 +387,7 @@ void BeatUploaderAudioProcessorEditor::getAccessToken()
     juce::var jsonVar(jsonObject);
     juce::String jsonString = juce::JSON::toString(jsonVar);
 
-    juce::String headers = "Content-Type: application/json\r\n";
+    juce::String headers = "Content-Type: application/json\r\nConnection: close\r\n";// add headers
 
     juce::URL url(API_URL + "/getAccessToken"); // internal api endpoint, 
     url = url.withPOSTData(jsonString); // add json as request's body
@@ -405,44 +405,39 @@ void BeatUploaderAudioProcessorEditor::getAccessToken()
 
     if (stream != nullptr) {
         juce::String response = stream->readEntireStreamAsString(); // receive response
-        juce::StringRef ref = "HTTP/1.1 200 OK"; // what to look for in response
-        
-        if (response.indexOf(ref) != -1) {
-            juce::var parsed = juce::JSON::parse(response);
+        juce::var parsed = juce::JSON::parse(response); // parse it to json
 
-            if (parsed.isObject()) {
-                try {
-                    juce::var accessTokenVar = parsed["access_token"];
-                    accessToken = accessTokenVar.toString(); // assign access token
-                    accessTokenObtained = true;
+        if (parsed.isObject()) {
+            // read values from json (this returns void if no value under that key is found)
+            juce::var accessTokenVar = parsed["access_token"];
+            juce::var refreshTokenVar = parsed["refresh_token"];
+            juce::var emailVar = parsed["email"];
 
-                    juce::var refreshTokenVar = parsed["refresh_token"]; // save email and refresh token to refresh_token.txt file for quicker access later
-                    std::string code = std::string(refreshTokenVar.toString().toRawUTF8());
-
-                    juce::var emailVar = parsed["email"];
-                    std::string email = std::string(emailVar.toString().toRawUTF8());
-
-                    createRefreshToken(email, code);
-                }
-                catch (std::exception& e) {
-                    output.setColour(juce::Label::textColourId, colours["error"]);
-                    output.setText("Google blocked the access, please try again later :(", juce::dontSendNotification);
-                }
+            if (accessTokenVar.isVoid() || refreshTokenVar.isVoid() || emailVar.isVoid()) { // check if they are void
+                output.setColour(juce::Label::textColourId, colours["error"]); // this means Google didn't send access tokens
+                output.setText("Google unabled the access :(", juce::dontSendNotification);
+                return;
             }
-            else {
-                output.setColour(juce::Label::textColourId, colours["error"]);
-                output.setText("Server error, please try again later", juce::dontSendNotification);
-            }
+
+            accessToken = accessTokenVar.toString(); // assign access token
+            accessTokenObtained = true;
+
+            std::string code = std::string(refreshTokenVar.toString().toRawUTF8());
+            std::string email = std::string(emailVar.toString().toRawUTF8());
+
+            createRefreshToken(email, code); // create refresh token in appdata/ for easier login process later
         }
-        else {
+        else { // API response is not a valid json
             output.setColour(juce::Label::textColourId, colours["error"]);
-            output.setText("Unable to connect to server", juce::dontSendNotification);
+            output.setText("Server error, please try again later", juce::dontSendNotification);
         }
     }
-    else {
+    else { // this means that no connection with API was made
         output.setColour(juce::Label::textColourId, colours["error"]);
-        output.setText("Unable to connect to Google account", juce::dontSendNotification);
+        output.setText("Unable to connect to the server", juce::dontSendNotification);
     }
+
+    stream.reset();
 }
 
 void BeatUploaderAudioProcessorEditor::paint (juce::Graphics& g)
