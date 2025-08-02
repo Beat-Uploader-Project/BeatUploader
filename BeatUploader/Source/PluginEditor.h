@@ -74,8 +74,10 @@ private:
     // files
     juce::File audio;
     juce::File image;
-    juce::MemoryBlock audioData; // base64 encoding, necessary to send binary data through json
+    juce::MemoryBlock audioData; // base64 encoding, necessary to send data through json
     juce::MemoryBlock imageData;
+    juce::String audioExt; // e.g. .wav, .mp3
+    juce::String imageExt; // .jpg, .gif
 
     // labels
     juce::Label title;
