@@ -6,7 +6,6 @@ from functools import wraps
 from pathlib import Path
 
 import environ
-import json
 import requests
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,22 +21,14 @@ def check_API_key(view):
 
             q = None
             if 'q' in request.data:
-                try:
-                    content = json.loads(request.data)
-                    q = content.get('q')
-                except Exception:
-                    pass
+                q = request.data.get('q')
+
             elif '_content' in request.data:
-                try:
-                    content = json.loads(request.data["_content"])
-                    q = content.get('q')
-                except Exception:
-                    pass
+                content = request.data["_content"]
+                q = content.get('q')
             
             if q != api_key:
                 return Response({'Error': 'API key is incorrect'}, status=status.HTTP_403_FORBIDDEN)
-            
-            request.content = content
 
             return view(request)
         except Exception:
@@ -48,7 +39,7 @@ def check_API_key(view):
 @api_view(['POST'])
 @check_API_key
 def getAccessToken(request):
-    code = request.content.get('code') # nie wiem jak sie nazywa ten parametr
+    code = request.data.get('code')
 
     if code is not None:
         data = {
