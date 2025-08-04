@@ -9,7 +9,7 @@ import environ
 import json
 import requests
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
 env.read_env(BASE_DIR / '.env')
