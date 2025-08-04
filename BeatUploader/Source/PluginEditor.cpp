@@ -115,8 +115,21 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
                         output.setColour(juce::Label::textColourId, colours["font"]);
                         output.setText("Audio uploaded", juce::dontSendNotification);
 
-                        audioChosen = true;
                         audioExt = audio.getFileExtension();
+                        
+                        juce::AudioFormatManager formatManager;
+                        formatManager.registerBasicFormats();
+
+                        if (auto* reader = formatManager.createReaderFor(audio)) {
+                            duration = static_cast<double>(reader->lengthInSamples) / reader->sampleRate;
+                            audioChosen = true;
+
+                            delete reader;
+                        }
+                        else {
+                            output.setColour(juce::Label::textColourId, colours["error"]);
+                            output.setText("Audio could not be read properly", juce::dontSendNotification);
+                        }
                     }
                 }
             });
@@ -340,9 +353,10 @@ void BeatUploaderAudioProcessorEditor::sendData()
     jsonObject->setProperty("audio", base64EncodedAudio);
     jsonObject->setProperty("image", base64EncodedImage);
     jsonObject->setProperty("q", API_KEY);
-    jsonObject->setProperty("code", accessToken);
+    jsonObject->setProperty("access_token", accessToken);
     jsonObject->setProperty("audioExt", audioExt);
     jsonObject->setProperty("imageExt", imageExt);
+    jsonObject->setProperty("duration", duration);
 
     juce::var jsonVar(jsonObject);
     juce::String jsonString = juce::JSON::toString(jsonVar); // create json
