@@ -30,6 +30,8 @@ public:
     OAuthReceiver(int portToUse = 8080) // running listening server on port 8080 on another thread
         : juce::Thread("OAuthReceiverThread"), port(portToUse), shouldStop(false) {}
 
+    ~OAuthReceiver() { stopThread(500); }
+
     void setCallback(AuthCodeCallback func) // sets function (callback) to run when authentication code is parsed
     {
         callback = std::move(func);
@@ -95,6 +97,12 @@ public:
         }
 
         serverSocket.close();
+    }
+
+    void stop() // manually stops the thread
+    {
+        shouldStop = true;
+        stopThread(1000);
     }
 
 private:
