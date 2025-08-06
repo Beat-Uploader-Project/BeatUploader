@@ -188,7 +188,7 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
     imageSelect.setLookAndFeel(lookAndFeel.get());
     uploadBtn.setLookAndFeel(lookAndFeel.get());
 }
-BeatUploaderAudioProcessorEditor::~BeatUploaderAudioProcessorEditor(){}
+BeatUploaderAudioProcessorEditor::~BeatUploaderAudioProcessorEditor() {}
 
 // checks for text file on user's PC
 void BeatUploaderAudioProcessorEditor::checkForRefreshToken()
@@ -246,8 +246,8 @@ void BeatUploaderAudioProcessorEditor::login()
 
     // below code creates listening socket and launches google oauth login page in the browser
 
-    if (inProcess) // this stops user from creating another listening socket when one is already listening
-        oauthReceiver->stopThread(1000); // stops currently running socket and reopnes it
+    if (inProcess) // when user clicked on login button again, currently running thread is focely closed
+        oauthReceiver->stop();
 
     oauthReceiver = std::make_unique<OAuthReceiver>(8080); // initialize listener on localhost::8080
 
@@ -263,6 +263,8 @@ void BeatUploaderAudioProcessorEditor::login()
 
                     loggedIn = true;
                     inProcess = false;
+
+                    oauthReceiver->stop(); // make sure to stop the thread and free the port 8080, because it will stay taken while the pc is running
                 });
         });
 
@@ -363,7 +365,7 @@ void BeatUploaderAudioProcessorEditor::sendData()
 
     juce::String headers = "Content-Type: application/json\r\nConnection: close\r\n";
 
-    juce::URL url(API_URL + "/upload"); // internal api endpoint for uploading data
+    juce::URL url(API_URL + "/upload/"); // internal api endpoint for uploading data
     url = url.withPOSTData(jsonString); // assign json body
 
     std::unique_ptr<juce::InputStream> stream(url.createInputStream( // conntect to api
@@ -431,7 +433,7 @@ void BeatUploaderAudioProcessorEditor::getAccessToken()
 
     juce::String headers = "Content-Type: application/json\r\nConnection: close\r\n";// add headers
 
-    juce::URL url(API_URL + "/getAccessToken"); // internal api endpoint, 
+    juce::URL url(API_URL + "/getAccessToken/"); // internal api endpoint, 
     url = url.withPOSTData(jsonString); // add json as request's body
 
     std::unique_ptr<juce::InputStream> stream(url.createInputStream( // connect to internal api
