@@ -6,6 +6,24 @@
 
 using AuthCodeCallback = std::function<void(const juce::String& code)>; // type of callback function
 
+// <juce code>
+template <typename Function>
+bool callAsync(Function&& function) // including this function was just pain, so I just copied it
+{
+    using NonRef = std::remove_cv_t<std::remove_reference_t<Function>>;
+
+    struct AsyncCallInvoker final : juce::MessageManager::MessageBase
+    {
+        explicit AsyncCallInvoker(NonRef f) : fn(std::move(f)) {}
+        void messageCallback() override { fn(); }
+
+        NonRef fn;
+    };
+
+    return (new AsyncCallInvoker{ std::move(function) })->post();
+}
+// </juce code>
+
 class OAuthReceiver : public juce::Thread
 {
 public:
@@ -21,7 +39,7 @@ public:
     {
         juce::StreamingSocket serverSocket; // set up listening socket
         if (!serverSocket.createListener(port)) { // if unable to create socket on this port (8080)
-            juce::URL(API_URL + "/static?status=error&reason=port").launchInDefaultBrowser(); // redirect to informative page
+            juce::URL(API_URL + "/static?status=error").launchInDefaultBrowser(); // redirect to informative page
             return;
         }
 
@@ -48,7 +66,7 @@ public:
                             shouldStop = true;
 
                             if (callback) { // run callback
-                                juce::MessageManager::callAsync([cb = callback, code]() {
+                                callAsync([cb = callback, code]() {
                                     cb(code);
                                 });
                             }
