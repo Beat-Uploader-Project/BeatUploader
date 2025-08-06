@@ -78,7 +78,7 @@ private:
     juce::MemoryBlock imageData;
     juce::String audioExt; // e.g. .wav, .mp3
     juce::String imageExt; // .jpg, .gif
-    double duration;
+    double duration = 0.0;
 
     // labels
     juce::Label title;
