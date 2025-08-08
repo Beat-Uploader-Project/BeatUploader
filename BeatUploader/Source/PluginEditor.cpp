@@ -216,8 +216,8 @@ void BeatUploaderAudioProcessorEditor::checkForRefreshToken()
         }
 
         if (code != "" && email != "") {
-            accessToken = code;
-            accessTokenObtained = loggedIn = true;
+            googleAuthCode = code;
+            loggedIn = true;
 
             output.setColour(juce::Label::textColourId, colours["font"]);
             output.setText("Successfully logged in as: " + email, juce::dontSendNotification);
@@ -242,7 +242,7 @@ void BeatUploaderAudioProcessorEditor::login()
     }
 
     this->checkForRefreshToken(); // check for refresh_token.txt file in APPDATA to skip logging process
-    if (accessTokenObtained) return;
+    if (loggedIn) return;
 
     // below code creates listening socket and launches google oauth login page in the browser
 
@@ -336,11 +336,8 @@ void BeatUploaderAudioProcessorEditor::upload()
     }
 
     // send HTTP requests with data and access tokens or auth codes
-    if (accessTokenObtained) this->sendData(); // accessToken variable contains a value
-    else { // accessToken variable is empty
-        this->getAccessToken();
-        if (accessTokenObtained) this->sendData();
-    }
+    this->getAccessToken();
+    if (accessTokenObtained) this->sendData();
 }
 
 // sends user input to /upload API endpoint
@@ -469,7 +466,8 @@ void BeatUploaderAudioProcessorEditor::getAccessToken()
             std::string code = std::string(refreshTokenVar.toString().toRawUTF8());
             std::string email = std::string(emailVar.toString().toRawUTF8());
 
-            this->createRefreshToken(email, code); // create refresh token in appdata/ for easier login process later
+            if (code != "not_send") this->createRefreshToken(email, code); // create refresh token in appdata/ for easier login process later
+            // when access token is obtained from refresh token, google may not send the refresh token
         }
         else { // API response is not a valid json
             output.setColour(juce::Label::textColourId, colours["error"]);
