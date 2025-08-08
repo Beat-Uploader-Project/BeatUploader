@@ -66,10 +66,15 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
 
 
     // makes visible and adds functionality to:
-    // logging button
+    // login and change account button
     addAndMakeVisible(loginBtn);
     loginBtn.onClick = [this]() {
         this->login();
+    };
+
+    addAndMakeVisible(changeAccountBtn);
+    changeAccountBtn.onClick = [this]() {
+        this->changeAccount();
     };
 
     // textboxes and labels
@@ -80,7 +85,7 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
     dscBox.setScrollbarsShown(true);
 
     addAndMakeVisible(title);
-    addAndMakeVisible(info);
+    addAndMakeVisible(loginInfo);
     addAndMakeVisible(output);
 
     // audio and image input
@@ -482,6 +487,30 @@ void BeatUploaderAudioProcessorEditor::getAccessToken()
     stream.reset();
 }
 
+// deletes refresh_token.txt file from AppData to allow logging in on different google account
+void BeatUploaderAudioProcessorEditor::changeAccount()
+{
+    std::string appdata; // get appdata folder path
+    const char* env = std::getenv("APPDATA");
+
+    if (env)
+        appdata = env;
+    else
+        appdata = "notFound";
+
+    std::string filePath = appdata + "\\BeatUploader\\refresh_token.txt";
+
+    if (std::remove(filePath.c_str()) == 0) {
+        loggedIn = accessTokenObtained = uploadedSuccessfully = false;
+
+        this->login(); // launches the login process on reseted settings, which will open the browser and allow user to choose different account
+    }
+    else {
+        output.setColour(juce::Label::textColourId, colours["font"]);
+        output.setText("You are not logged in", juce::dontSendNotification);
+    }
+}
+
 void BeatUploaderAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // sets colour, font and text for each gui element
@@ -500,10 +529,16 @@ void BeatUploaderAudioProcessorEditor::paint (juce::Graphics& g)
     loginBtn.setColour(juce::TextButton::buttonOnColourId, colours["btnOnBg"]);
     loginBtn.setButtonText("Login");
 
-    info.setColour(juce::Label::textColourId, colours["info"]);
-    info.setColour(juce::Label::backgroundColourId, colours["bg"]);
-    info.setFont(infoFont);
-    info.setText("Google account (YouTube channel)", juce::dontSendNotification);
+    changeAccountBtn.setColour(juce::TextButton::textColourOffId, colours["font"]);
+    changeAccountBtn.setColour(juce::TextButton::textColourOnId, colours["btnOnTxt"]);
+    changeAccountBtn.setColour(juce::TextButton::buttonColourId, colours["labelBg"]);
+    changeAccountBtn.setColour(juce::TextButton::buttonOnColourId, colours["btnOnBg"]);
+    changeAccountBtn.setButtonText("Change account");
+
+    loginInfo.setColour(juce::Label::textColourId, colours["info"]);
+    loginInfo.setColour(juce::Label::backgroundColourId, colours["bg"]);
+    loginInfo.setFont(infoFont);
+    loginInfo.setText("Your Google account (YouTube channel)", juce::dontSendNotification);
 
     titleBox.setColour(juce::TextEditor::textColourId, colours["font"]);
     titleBox.setColour(juce::TextEditor::backgroundColourId, colours["labelBg"]);
@@ -556,8 +591,11 @@ void BeatUploaderAudioProcessorEditor::resized()
     cursor += (42 + spacing);
 
     loginBtn.setBounds(marginX, cursor, 110, 20);
-    info.setBounds(marginX + 110 + spacing, cursor, screenWidth - ((2 * marginX) + 110 + spacing), 19);
-    cursor += (20 + (4 * spacing));
+    loginInfo.setBounds(marginX + 110 + spacing, cursor, screenWidth - ((2 * marginX) + 110 + spacing), 19);
+    cursor += (30);
+    
+    changeAccountBtn.setBounds(marginX, cursor, 110, 20);
+    cursor += (20 + (3 * spacing));
 
     titleBox.setBounds(marginX, cursor, 110, 23);
     cursor += (23 + spacing);
