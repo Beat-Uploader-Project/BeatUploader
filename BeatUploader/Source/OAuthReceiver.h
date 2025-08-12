@@ -71,6 +71,7 @@ public:
                                 callAsync([cb = callback, code]() {
                                     cb(code);
                                 });
+                                juce::Thread::sleep(50);
                             }
 
                             client->write(successResponse.toRawUTF8(), successResponse.getNumBytesAsUTF8());

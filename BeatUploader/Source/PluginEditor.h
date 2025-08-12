@@ -39,6 +39,7 @@ private:
     void login();
     void checkForRefreshToken();
     void createRefreshToken(std::string email, std::string code);
+    void changeAccount();
 
     //std::unique_ptr<juce::FileLogger> logger; // debugger
 
@@ -61,6 +62,7 @@ private:
 
     // google oauth login
     juce::TextButton loginBtn;
+    juce::TextButton changeAccountBtn;
 
     // textbox input
     juce::TextEditor titleBox;
@@ -82,7 +84,7 @@ private:
 
     // labels
     juce::Label title;
-    juce::Label info;
+    juce::Label loginInfo;
     juce::Label output;
 
     // fonts
