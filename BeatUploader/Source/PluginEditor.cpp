@@ -11,17 +11,6 @@ BeatUploaderAudioProcessorEditor::BeatUploaderAudioProcessorEditor (BeatUploader
 {
     setSize (screenWidth, screenHeight);
 
-    // debugger (use it locally, but comment it out when you submit to remote)
-
-    /*auto logFile = juce::File::getSpecialLocation(juce::File::userDesktopDirectory)
-        .getChildFile("beat-uploader-log.txt");
-
-    logger = std::make_unique<juce::FileLogger>(logFile, "BeatUploader started");
-    juce::Logger::setCurrentLogger(logger.get());
-
-    juce::Logger::writeToLog("Logger initialized");*/
-
-
     // colours map that assigns RGB colour to descriptive name
     colours["bg"] = juce::Colour(15, 15, 15);
     colours["labelBg"] = juce::Colour(31, 31, 31);
