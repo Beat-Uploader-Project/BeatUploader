@@ -6,7 +6,6 @@
 
 using AuthCodeCallback = std::function<void(const juce::String& code)>; // type of callback function
 
-// <juce code>
 template <typename Function>
 bool callAsync(Function&& function) // including this function was just pain, so I just copied it
 {
@@ -22,7 +21,6 @@ bool callAsync(Function&& function) // including this function was just pain, so
 
     return (new AsyncCallInvoker{ std::move(function) })->post();
 }
-// </juce code>
 
 class OAuthReceiver : public juce::Thread
 {
@@ -112,7 +110,6 @@ private:
     juce::String authCode;
     AuthCodeCallback callback;
 
-    // change these with html files in the future
     juce::String successResponse =
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/html\r\n"
